@@ -1,19 +1,8 @@
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Custom monochrome scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: #000;
-}
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 10px;
+/* Monolith OS Core Styles */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -23,15 +12,40 @@ body {
   color: white;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: none;
   font-family: 'Inter', sans-serif;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  overflow: hidden;
 }
 
-/* Fix for mobile input appearance */
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Fixed viewport scroll container */
+.scroll-container {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Brutalist Inputs */
 input, select, textarea {
   appearance: none;
   -webkit-appearance: none;
+  background: transparent;
   border-radius: 0;
+  font-size: 16px !important;
 }
 
 input[type="time"]::-webkit-calendar-picker-indicator,
@@ -39,12 +53,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
 
-.nav-transition {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Animation Primitives */
+.animate-in {
+  animation-duration: 0.4s;
+  animation-fill-mode: both;
 }
 
-/* Ensure content fills the screen correctly */
-#root {
-  height: 100vh;
-  height: -webkit-fill-available;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.fade-in { animation-name: fade-in; }
+.zoom-in { animation-name: zoom-in; }
+
+/* Mobile Haptics simulation */
+.active-pulse:active {
+  background: white;
+  color: black;
 }

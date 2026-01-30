@@ -1,7 +1,6 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { WishlistItem } from '../types';
-import { Plus, Trash2, ExternalLink, X } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, X, Package } from 'lucide-react';
 
 interface Props {
   items: WishlistItem[];
@@ -11,6 +10,16 @@ interface Props {
   onAddCategory: (cat: string) => void;
   onDeleteCategory: (cat: string) => void;
 }
+
+// Logical grouping function for similar categories
+const getUnifiedCategory = (cat: string) => {
+  const c = cat.toLowerCase();
+  if (['tech', 'electronics', 'gadget', 'computer', 'mobile'].some(kw => c.includes(kw))) return 'Tech';
+  if (['fashion', 'wear', 'clothing', 'shoes', 'accessory'].some(kw => c.includes(kw))) return 'Fashion';
+  if (['home', 'living', 'furniture', 'decor'].some(kw => c.includes(kw))) return 'Home';
+  if (['book', 'reading', 'education', 'learning'].some(kw => c.includes(kw))) return 'Books';
+  return cat;
+};
 
 const WishlistModule: React.FC<Props> = ({ items, onDelete, onAdd, customCategories, onAddCategory, onDeleteCategory }) => {
   const [showAdd, setShowAdd] = useState(false);
@@ -31,6 +40,17 @@ const WishlistModule: React.FC<Props> = ({ items, onDelete, onAdd, customCategor
       setIsAddingOther(false);
     }
   };
+
+  // Grouped items logic
+  const groupedItems = useMemo(() => {
+    const groups: { [key: string]: WishlistItem[] } = {};
+    items.forEach(item => {
+      const group = getUnifiedCategory(item.category);
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(item);
+    });
+    return groups;
+  }, [items]);
 
   return (
     <div className="p-6 space-y-6 bg-black min-h-full">
@@ -117,7 +137,8 @@ const WishlistModule: React.FC<Props> = ({ items, onDelete, onAdd, customCategor
           <button 
             onClick={() => {
               if (newItem.name) {
-                onAdd({ ...newItem, image: `https://picsum.photos/seed/${newItem.name}/400/500` });
+                // Image removed as per requirement
+                onAdd({ ...newItem, image: '' });
                 setShowAdd(false);
                 setNewItem({ name: '', link: '', category: customCategories[0] || 'Other', price: 0 });
               }
@@ -129,38 +150,46 @@ const WishlistModule: React.FC<Props> = ({ items, onDelete, onAdd, customCategor
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 pb-12">
-        {items.length === 0 ? (
-          <div className="col-span-2 text-center py-32 text-gray-700 uppercase tracking-widest text-[10px] font-black italic">
+      <div className="space-y-8 pb-12">
+        {Object.keys(groupedItems).length === 0 ? (
+          <div className="text-center py-32 text-gray-700 uppercase tracking-widest text-[10px] font-black italic">
             Quiet Desires.
           </div>
         ) : (
-          items.map((item) => (
-            <div key={item.id} className="group relative bg-white/5 border border-white/5 rounded-[32px] overflow-hidden hover:border-white/20 transition-all">
-              <div className="aspect-[3/4] bg-gray-900 relative overflow-hidden">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" />
-                <div className="absolute top-4 left-4">
-                   <span className="bg-black/80 backdrop-blur-md px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest text-white">
-                    {item.category}
-                   </span>
-                </div>
-                <button 
-                  onClick={() => onDelete(item.id)}
-                  className="absolute top-4 right-4 p-2 bg-black/80 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-              <div className="p-5 space-y-2 bg-black">
-                <h3 className="font-black text-[10px] tracking-widest uppercase leading-tight line-clamp-1">{item.name}</h3>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-gray-400">${item.price || '??'}</span>
-                  {item.link && (
-                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="p-2 bg-white text-black rounded-full transition-transform hover:scale-110">
-                      <ExternalLink size={10} />
-                    </a>
-                  )}
-                </div>
+          Object.entries(groupedItems).map(([group, groupItems]) => (
+            <div key={group} className="space-y-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-600 border-l-2 border-white pl-3">{group}</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {/* Fixed: Added explicit type casting for groupItems to resolve 'unknown' type error in map function */}
+                {(groupItems as WishlistItem[]).map((item) => (
+                  <div key={item.id} className="p-5 bg-white/5 border border-white/5 rounded-[24px] flex items-center justify-between hover:border-white/20 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500">
+                        <Package size={16} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-xs tracking-widest uppercase leading-tight">{item.name}</h4>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] font-black text-gray-500">${item.price || '??'}</span>
+                          <span className="text-[8px] font-bold text-gray-700 uppercase tracking-widest">{item.category}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.link && (
+                        <a href={item.link} target="_blank" rel="noopener noreferrer" className="p-3 bg-white/5 text-gray-400 rounded-full hover:bg-white hover:text-black transition-all">
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                      <button 
+                        onClick={() => onDelete(item.id)}
+                        className="p-3 bg-white/5 text-gray-400 rounded-full hover:bg-red-500 hover:text-white transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))

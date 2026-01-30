@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Transaction, Wallet } from '../types';
 import { Plus, ArrowUpRight, ArrowDownLeft, TrendingUp, TrendingDown, Wallet as WalletIcon, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -40,13 +39,13 @@ const FinanceModule: React.FC<Props> = ({ transactions, wallets, onAddTransactio
     setSelectedMonth(newDate);
   };
 
-  const totalBalance = wallets.reduce((acc, w) => acc + w.balance, 0);
-  const monthlyIn = filteredTransactions.filter(t => t.type === 'INCOME').reduce((a, b) => a + b.amount, 0);
-  const monthlyOut = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((a, b) => a + b.amount, 0);
+  const totalBalance = wallets.reduce((acc: number, w: Wallet) => acc + w.balance, 0);
+  const monthlyIn = filteredTransactions.filter(t => t.type === 'INCOME').reduce((a: number, b: Transaction) => a + b.amount, 0);
+  const monthlyOut = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((a: number, b: Transaction) => a + b.amount, 0);
 
   const categoryData = customCategories.map(cat => ({
     name: cat,
-    value: filteredTransactions.filter(t => t.category === cat && t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0)
+    value: filteredTransactions.filter(t => t.category === cat && t.type === 'EXPENSE').reduce((acc: number, t: Transaction) => acc + t.amount, 0)
   })).filter(d => d.value > 0);
 
   const COLORS = ['#FFFFFF', '#888888', '#444444', '#BBBBBB', '#666666', '#333333'];
@@ -195,7 +194,7 @@ const FinanceModule: React.FC<Props> = ({ transactions, wallets, onAddTransactio
               )}
 
               <button 
-                onClick={() => { if (newT.amount > 0) { onAddTransaction({...newT, date: new Date(newT.date).getTime()}); setShowAdd(false); } }} 
+                onClick={() => { if (newT.amount > 0) { onAddTransaction({...newT, timestamp: new Date(newT.date).getTime()}); setShowAdd(false); } }} 
                 className="w-full bg-white text-black py-5 rounded-[24px] font-black uppercase text-sm tracking-[0.2em] shadow-xl"
               >
                 Save Record

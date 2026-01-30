@@ -1,7 +1,8 @@
 {
-  "name": "Monolith Life Manager",
-  "description": "A minimalist, monochrome all-in-one life management app for scheduling, tasks, shopping, and finances.",
   "requestFramePermissions": [
-    "camera"
-  ]
+    "camera",
+    "microphone"
+  ],
+  "name": "Monolith OS",
+  "description": "Immersive brutalist Life OS for mobile hardware."
 }
