@@ -7,17 +7,18 @@ import {
   Camera, CheckCircle2, Circle, Loader2, TrendingUp, TrendingDown,
   Lock, Eye, EyeOff, Search, ExternalLink, Shield, ArrowRight, Layers, ShoppingBag,
   Upload, Folder, FileText, Heart, Edit3, PieChart as PieIcon, RotateCw, Copy as CopyIcon,
-  Zap, CalendarDays, History
+  Zap, CalendarDays, History, BookOpen
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CalendarEvent, Task, Transaction, PasswordEntry, WishlistItem, ResourceItem, Folder as FolderType, RepeatType, PriorityType, CalendarView } from './types';
+import { CalendarEvent, Task, Transaction, PasswordEntry, WishlistItem, ResourceItem, Folder as FolderType, RepeatType, PriorityType, CalendarView, LearningItem, CurrencyType, CURRENCY_SYMBOLS } from './types';
 
 // --- IMPORT MODULES ---
 import PasswordManagerModule from './components/PasswordManagerModule';
 import SettingsModule from './components/SettingsModule';
 import WishlistModule from './components/WishlistModule';
 import ResourcesModule from './components/ResourcesModule';
+import LearningModule from './components/LearningModule';
 
 // --- PERSISTENCE UTILITY ---
 const usePersistentState = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
@@ -104,7 +105,7 @@ const CalendarModule = ({ events, setEvents, tasks, setTasks }: { events: Calend
   const [showAdd, setShowAdd] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [view, setView] = usePersistentState<CalendarView>('monolith_calendar_view', 'DAY');
-  const [newEvent, setNewEvent] = useState<{title: string, startTime: string, endTime: string, date: string, repeat: RepeatType}>({ 
+  const [newEvent, setNewEvent] = useState<{title: string, startTime: string, endTime?: string, date: string, repeat: RepeatType}>({ 
     title: '', startTime: '09:00', endTime: '10:00', date: selectedDate, repeat: 'NONE' 
   });
   const [showReplicateModal, setShowReplicateModal] = useState(false);
@@ -112,7 +113,9 @@ const CalendarModule = ({ events, setEvents, tasks, setTasks }: { events: Calend
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const dayEvents = useMemo(() => 
-    events.filter((e: CalendarEvent) => isEventOnDate(e, selectedDate)).sort((a: CalendarEvent, b: CalendarEvent) => a.startTime.localeCompare(b.startTime)),
+    events
+      .filter((e: CalendarEvent) => isEventOnDate(e, selectedDate))
+      .sort((a: CalendarEvent, b: CalendarEvent) => a.startTime.localeCompare(b.startTime)),
   [events, selectedDate]);
 
   const dayTasks = useMemo(() => 
@@ -225,7 +228,9 @@ const CalendarModule = ({ events, setEvents, tasks, setTasks }: { events: Calend
               <div className="flex justify-between items-center">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                     <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">{event.startTime} — {event.endTime}</span>
+                     <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">
+                       {event.startTime} {event.endTime ? `— ${event.endTime}` : <span className="ml-1 text-white/20 italic">(Ongoing)</span>}
+                     </span>
                      {event.repeat && event.repeat !== 'NONE' && <RotateCw size={10} className="text-gray-700" />}
                   </div>
                   <h3 className="text-base font-bold uppercase tracking-tight">{event.title}</h3>
@@ -269,7 +274,7 @@ const CalendarModule = ({ events, setEvents, tasks, setTasks }: { events: Calend
       const d = new Date(startOfWeek);
       d.setDate(d.getDate() + i);
       const ds = d.toISOString().split('T')[0];
-      days.push({ ds, label: d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }), evs: events.filter(e => isEventOnDate(e, ds)) });
+      days.push({ ds, label: d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }), evs: events.filter(e => isEventOnDate(e, ds)).sort((a,b) => a.startTime.localeCompare(b.startTime)) });
     }
     return (
       <div className="space-y-2 pb-24">
@@ -402,7 +407,10 @@ const CalendarModule = ({ events, setEvents, tasks, setTasks }: { events: Calend
                 <input type="date" className="w-full bg-white/5 rounded-2xl p-4 text-white font-black" value={editingEvent ? editingEvent.date : newEvent.date} onChange={e => editingEvent ? setEditingEvent({...editingEvent, date: e.target.value}) : setNewEvent({...newEvent, date: e.target.value})} />
                 <div className="grid grid-cols-2 gap-4">
                   <input type="time" className="w-full bg-white/5 rounded-2xl p-4 text-white font-black" value={editingEvent ? editingEvent.startTime : newEvent.startTime} onChange={e => editingEvent ? setEditingEvent({...editingEvent, startTime: e.target.value}) : setNewEvent({...newEvent, startTime: e.target.value})} />
-                  <input type="time" className="w-full bg-white/5 rounded-2xl p-4 text-white font-black" value={editingEvent ? editingEvent.endTime : newEvent.endTime} onChange={e => editingEvent ? setEditingEvent({...editingEvent, endTime: e.target.value}) : setNewEvent({...newEvent, endTime: e.target.value})} />
+                  <div className="space-y-1">
+                    <input type="time" className="w-full bg-white/5 rounded-2xl p-4 text-white font-black" value={editingEvent ? editingEvent.endTime : newEvent.endTime} onChange={e => editingEvent ? setEditingEvent({...editingEvent, endTime: e.target.value}) : setNewEvent({...newEvent, endTime: e.target.value})} />
+                    <button onClick={() => editingEvent ? setEditingEvent({...editingEvent, endTime: undefined}) : setNewEvent({...newEvent, endTime: undefined})} className="text-[7px] text-gray-600 uppercase font-black tracking-widest">Clear End Time (Ongoing)</button>
+                  </div>
                 </div>
               </div>
 
@@ -441,6 +449,7 @@ const CalendarModule = ({ events, setEvents, tasks, setTasks }: { events: Calend
   );
 };
 
+// --- TASKS MODULE ---
 const TasksModule = ({ tasks, setTasks }: { tasks: Task[], setTasks: any }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -580,7 +589,6 @@ const TasksModule = ({ tasks, setTasks }: { tasks: Task[], setTasks: any }) => {
                 <div className="flex flex-col">
                   <span className="text-[7px] font-black text-gray-700 uppercase tracking-widest">Daily Effort</span>
                   <div className="flex gap-1 mt-1">
-                    {/* Tiny visual representation of last 5 days */}
                     {Array.from({ length: 5 }).map((_, i) => {
                       const d = new Date();
                       d.setDate(d.getDate() - (4 - i));
@@ -646,7 +654,8 @@ const TasksModule = ({ tasks, setTasks }: { tasks: Task[], setTasks: any }) => {
   );
 };
 
-const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, customCategories, setCustomCategories }: any) => {
+// --- FINANCE MODULE ---
+const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, customCategories, setCustomCategories, currency, setCurrency }: any) => {
   const [showAdd, setShowAdd] = useState(false);
   const [editingT, setEditingT] = useState<Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -655,6 +664,7 @@ const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, cus
   const [otherCat, setOtherCat] = useState('');
   const [showAnalytics, setShowAnalytics] = useState(false);
   
+  const symbol = CURRENCY_SYMBOLS[currency as CurrencyType] || '$';
   const totalBalance = useMemo(() => wallets.reduce((acc: number, w: any) => acc + w.balance, 0), [wallets]);
 
   const filteredTransactions = useMemo(() => {
@@ -691,9 +701,7 @@ const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, cus
       setTransactions((p:any) => p.map((x:any) => x.id === oldT.id ? { ...t, category: finalCat, id: oldT.id, timestamp: oldT.timestamp } : x));
       setWallets((p:any) => p.map((w:any) => {
         let bal = w.balance;
-        // Reverse old
         bal = oldT.type === 'INCOME' ? bal - oldT.amount : bal + oldT.amount;
-        // Add new
         bal = t.type === 'INCOME' ? bal + t.amount : bal - t.amount;
         return { ...w, balance: bal };
       }));
@@ -708,15 +716,24 @@ const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, cus
 
   return (
     <div className="p-5 space-y-6 animate-in fade-in duration-300">
-      <div className="bg-white text-black p-10 rounded-[48px] shadow-2xl relative overflow-hidden h-[25vh] flex flex-col justify-center">
-        <span className="text-[8px] font-black uppercase tracking-[0.4em] opacity-30">Liquidity Index</span>
-        <h2 className="text-4xl font-black tracking-tighter mt-2 leading-none">${totalBalance.toLocaleString()}</h2>
-        <div className="flex gap-4 mt-6">
-          <div className="bg-black/5 p-3 rounded-2xl flex-1"><p className="text-[6px] font-black uppercase opacity-40">Monthly In</p><p className="text-xs font-black">+${monthlyIn.toLocaleString()}</p></div>
-          <div className="bg-black/5 p-3 rounded-2xl flex-1"><p className="text-[6px] font-black uppercase opacity-40">Monthly Out</p><p className="text-xs font-black">-${monthlyOut.toLocaleString()}</p></div>
+      <div className="bg-white text-black p-10 rounded-[48px] shadow-2xl relative overflow-hidden h-[28vh] flex flex-col justify-center">
+        <div className="flex justify-between items-start">
+          <span className="text-[8px] font-black uppercase tracking-[0.4em] opacity-30">Liquidity Index</span>
+          <select 
+            value={currency} 
+            onChange={(e) => setCurrency(e.target.value)} 
+            className="text-[10px] font-black border-none outline-none bg-black/5 px-2 py-1 rounded-lg uppercase tracking-widest cursor-pointer"
+          >
+            {['USD', 'JPY', 'EUR', 'AED', 'INR'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
-        <button onClick={() => setShowAnalytics(!showAnalytics)} className="absolute top-8 right-8 text-black/20 hover:text-black"><PieIcon size={24} /></button>
-        <div className="absolute -right-8 -bottom-8 opacity-5 rotate-12"><WalletIcon size={160} /></div>
+        <h2 className="text-4xl font-black tracking-tighter mt-2 leading-none">{symbol}{totalBalance.toLocaleString()}</h2>
+        <div className="flex gap-4 mt-6">
+          <div className="bg-black/5 p-3 rounded-2xl flex-1"><p className="text-[6px] font-black uppercase opacity-40">Monthly In</p><p className="text-xs font-black">+{symbol}{monthlyIn.toLocaleString()}</p></div>
+          <div className="bg-black/5 p-3 rounded-2xl flex-1"><p className="text-[6px] font-black uppercase opacity-40">Monthly Out</p><p className="text-xs font-black">-{symbol}{monthlyOut.toLocaleString()}</p></div>
+        </div>
+        <button onClick={() => setShowAnalytics(!showAnalytics)} className="absolute bottom-6 right-8 text-black/20 hover:text-black"><PieIcon size={24} /></button>
+        <div className="absolute -right-8 -bottom-8 opacity-5 rotate-12 pointer-events-none"><WalletIcon size={160} /></div>
       </div>
 
       {showAnalytics && categoryData.length > 0 && (
@@ -751,7 +768,10 @@ const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, cus
               <button onClick={() => editingT ? setEditingT({...editingT, type: 'EXPENSE'}) : setNewT({...newT, type: 'EXPENSE'})} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${(editingT ? editingT.type : newT.type) === 'EXPENSE' ? 'bg-white text-black' : 'text-gray-500'}`}>EXPENSE</button>
               <button onClick={() => editingT ? setEditingT({...editingT, type: 'INCOME'}) : setNewT({...newT, type: 'INCOME'})} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${(editingT ? editingT.type : newT.type) === 'INCOME' ? 'bg-white text-black' : 'text-gray-500'}`}>INCOME</button>
             </div>
-            <input type="number" placeholder="0.00" className="w-full text-6xl font-black bg-transparent text-white border-b-4 border-white/5 text-center pb-6 focus:outline-none focus:border-white transition-all" autoFocus value={editingT ? editingT.amount : newT.amount} onChange={e => editingT ? setEditingT({...editingT, amount: parseFloat(e.target.value) || 0}) : setNewT({...newT, amount: parseFloat(e.target.value) || 0})} />
+            <div className="flex items-center justify-center text-6xl font-black text-white border-b-4 border-white/5 pb-6">
+              <span>{symbol}</span>
+              <input type="number" placeholder="0.00" className="w-full bg-transparent text-center focus:outline-none focus:border-white transition-all" autoFocus value={editingT ? editingT.amount : newT.amount} onChange={e => editingT ? setEditingT({...editingT, amount: parseFloat(e.target.value) || 0}) : setNewT({...newT, amount: parseFloat(e.target.value) || 0})} />
+            </div>
             <div className="space-y-4">
               <label className="text-[8px] font-black uppercase tracking-widest text-gray-500">Registry Date</label>
               <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-xs font-black uppercase focus:outline-none" value={editingT ? editingT.date : newT.date} onChange={e => editingT ? setEditingT({...editingT, date: e.target.value}) : setNewT({...newT, date: e.target.value})} />
@@ -778,7 +798,7 @@ const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, cus
               <div><h4 className="font-black text-[10px] uppercase tracking-[0.1em]">{t.category}</h4><p className="text-[7px] text-gray-800 uppercase mt-0.5 font-black">{new Date(t.date).toLocaleDateString()}</p></div>
             </div>
             <div className="flex items-center gap-4">
-              <span className={`font-black text-xl tracking-tighter ${t.type === 'INCOME' ? 'text-green-500' : 'text-white'}`}>{t.type === 'INCOME' ? '+' : '-'}${t.amount.toLocaleString()}</span>
+              <span className={`font-black text-xl tracking-tighter ${t.type === 'INCOME' ? 'text-green-500' : 'text-white'}`}>{t.type === 'INCOME' ? '+' : '-'}{symbol}{t.amount.toLocaleString()}</span>
               <button onClick={(e) => { e.stopPropagation(); setTransactions((p: any) => p.filter((x: any) => x.id !== t.id)); setWallets((p: any) => p.map((w: any) => ({ ...w, balance: t.type === 'INCOME' ? w.balance - t.amount : w.balance + t.amount }))); }} className="text-gray-900 group-hover:text-red-500 transition-colors">
                 <Trash2 size={14} />
               </button>
@@ -792,16 +812,17 @@ const FinanceModule = ({ transactions, wallets, setTransactions, setWallets, cus
 };
 
 // --- APP CORE ---
-
 const App = () => {
   const [activeTab, setActiveTab] = usePersistentState('monolith_active_tab', 'calendar');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [backPressTime, setBackPressTime] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [currency, setCurrency] = usePersistentState<string>('monolith_currency', 'USD');
   
   // Persistent States
   const [events, setEvents] = usePersistentState<CalendarEvent[]>('monolith_events', []);
   const [tasks, setTasks] = usePersistentState<Task[]>('monolith_tasks', []);
+  const [learning, setLearning] = usePersistentState<LearningItem[]>('monolith_learning', []);
   const [transactions, setTransactions] = usePersistentState<Transaction[]>('monolith_transactions', []);
   const [wallets, setWallets] = usePersistentState('monolith_wallets', [{ id: '1', name: 'Main', balance: 0 }]);
   const [passwords, setPasswords] = usePersistentState<PasswordEntry[]>('monolith_passwords', []);
@@ -813,7 +834,6 @@ const App = () => {
 
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
-      // Logic for Double Back to Exit - only on root screens
       if (isMenuOpen) {
         setIsMenuOpen(false);
         window.history.pushState(null, document.title, window.location.href);
@@ -823,11 +843,7 @@ const App = () => {
       const now = Date.now();
       if (now - backPressTime < 2000) {
         setToast("EXITING MONOLITH...");
-        setTimeout(() => {
-          // window.close() works if the app was opened via window.open, 
-          // but for general webapps/PWA it's a simulation or used by webview wrappers.
-          window.close();
-        }, 300);
+        setTimeout(() => { window.close(); }, 300);
       } else {
         setBackPressTime(now);
         setToast("PRESS BACK AGAIN TO EXIT");
@@ -851,7 +867,7 @@ const App = () => {
       <header className="h-[14vh] px-8 border-b border-white/5 flex justify-between items-end bg-black/95 backdrop-blur-3xl sticky top-0 z-[150] pb-5" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div onClick={() => setActiveTab('calendar')} className="active:scale-95 transition-transform cursor-pointer">
           <h1 className="text-3xl font-black tracking-tighter uppercase leading-none">Monolith</h1>
-          <p className="text-[8px] text-gray-800 mt-1 uppercase tracking-[0.8em] font-black leading-none">Life OS v1.6.0</p>
+          <p className="text-[8px] text-gray-800 mt-1 uppercase tracking-[0.8em] font-black leading-none">Life OS v1.7.0</p>
         </div>
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center bg-white/5 active:scale-90 active:bg-white active:text-black transition-all">
           {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -870,6 +886,7 @@ const App = () => {
             <div className="space-y-4 flex-1">
               <h3 className="text-[9px] font-black uppercase tracking-[0.8em] text-gray-800 mb-12 px-2">Sub-Systems</h3>
               <MenuBtn onClick={() => handleMenuNavigation('keys')} label="Vault" icon={<Shield size={14} />} />
+              <MenuBtn onClick={() => handleMenuNavigation('learning')} label="Learning" icon={<BookOpen size={14} />} />
               <MenuBtn onClick={() => handleMenuNavigation('resources')} label="Archives" icon={<Archive size={14} />} />
               <MenuBtn onClick={() => handleMenuNavigation('wishlist')} label="Wishlist" icon={<Heart size={14} />} />
             </div>
@@ -883,7 +900,8 @@ const App = () => {
         <div className="h-full scroll-container">
           {activeTab === 'calendar' && <CalendarModule events={events} setEvents={setEvents} tasks={tasks} setTasks={setTasks} />}
           {activeTab === 'tasks' && <TasksModule tasks={tasks} setTasks={setTasks} />}
-          {activeTab === 'finance' && <FinanceModule transactions={transactions} wallets={wallets} setTransactions={setTransactions} setWallets={setWallets} customCategories={financeCategories} setCustomCategories={setFinanceCategories} />}
+          {activeTab === 'learning' && <LearningModule items={learning} setItems={setLearning} />}
+          {activeTab === 'finance' && <FinanceModule transactions={transactions} wallets={wallets} setTransactions={setTransactions} setWallets={setWallets} customCategories={financeCategories} setCustomCategories={setFinanceCategories} currency={currency} setCurrency={setCurrency} />}
           {activeTab === 'keys' && <PasswordManagerModule passwords={passwords} setPasswords={setPasswords} />}
           {activeTab === 'system' && <SettingsModule />}
           {activeTab === 'wishlist' && (

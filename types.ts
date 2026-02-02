@@ -3,6 +3,16 @@
 export type PriorityType = 'LOW' | 'MEDIUM' | 'HIGH';
 export type RepeatType = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 export type CalendarView = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
+export type LearningStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+export type CurrencyType = 'USD' | 'JPY' | 'EUR' | 'AED' | 'INR';
+
+export const CURRENCY_SYMBOLS: Record<CurrencyType, string> = {
+  USD: '$',
+  JPY: '¥',
+  EUR: '€',
+  AED: 'د.إ',
+  INR: '₹'
+};
 
 export enum Priority {
   LOW = 'LOW',
@@ -14,7 +24,7 @@ export interface CalendarEvent {
   id: string;
   title: string;
   startTime: string;
-  endTime: string;
+  endTime?: string; // Optional end time for ongoing events
   date: string;
   repeat?: RepeatType;
 }
@@ -29,6 +39,14 @@ export interface Task {
   createdAt: string; // When the task was initialized
   completedAt?: string; // ISO Date of completion
   workHistory?: Record<string, boolean>; // Log of days worked on: { 'YYYY-MM-DD': true }
+}
+
+export interface LearningItem {
+  id: string;
+  title: string;
+  notes?: string;
+  link?: string;
+  status: LearningStatus;
 }
 
 export interface Transaction {
